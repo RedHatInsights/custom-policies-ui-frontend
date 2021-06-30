@@ -150,6 +150,10 @@ const run = async () => {
         'Sleep time (ms) between each data to avoid having them all at the same time',
         (value: string) => parseInt(value) || 100,
         100
+    ).option(
+        '--ssl',
+        'If should connect using security.protocol=ssl (will also set the verification to false)',
+        false
     );
 
     program.parse();
@@ -160,6 +164,7 @@ const run = async () => {
         topic: string;
         alertCount: number;
         sleep: number;
+        ssl: boolean;
     }
 
     const params = program as unknown as Params;
@@ -182,10 +187,15 @@ const run = async () => {
         kafka: params.kafka,
         topic: params.topic,
         alertCount: params.alertCount,
-        sleep: params.sleep
+        sleep: params.sleep,
+        ssl: params.ssl
     });
 
-    const kafkacatProcess = exec(`${kafkacat} -P -t ${params.topic} -b ${params.kafka} -H "event_type=updated"`);
+    const sslArguments = '-X security.protocol=ssl -X enable.ssl.certificate.verification=false';
+
+    const kafkacatProcess = exec(
+        `${kafkacat} -P -t ${params.topic} -b ${params.kafka} ${params.ssl ? sslArguments : ''} -H "event_type=updated"`
+    );
 
     if (kafkacatProcess.stdin) {
         const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
